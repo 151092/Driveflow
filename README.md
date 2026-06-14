@@ -36,8 +36,14 @@ Spotify real:
 PKCE is used, so no client secret is required. Tokens are refreshed
 automatically when expired. Once Spotify is connected for real, the drive queue
 is built from your **recently-played** tracks (and can be refreshed from the
-Account screen); otherwise a sample mix is used. Apple Music and Audible stay
-simulated — neither offers a public user-facing OAuth.
+Account screen); otherwise a sample mix is used.
+
+**Playback control:** when a Spotify device is active (the Spotify app open on a
+phone, desktop, or speaker) the transport controls drive it for real over the
+Web API — play/pause/skip and 1s live position polling. This needs Spotify
+**Premium**; without an active device or Premium the app falls back to a local
+preview clock and shows a hint. Apple Music and Audible stay simulated — neither
+offers a public user-facing OAuth.
 
 ## Running
 

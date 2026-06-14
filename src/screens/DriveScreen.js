@@ -15,7 +15,7 @@ import VoiceSheet from "../components/VoiceSheet";
 
 export default function DriveScreen({ navigation }) {
   const { linkedCount } = useAuth();
-  const { queue, source, track, idx, playing, pos, prev, next, togglePlay, goto } = usePlayer();
+  const { queue, source, remote, remoteHint, track, idx, playing, pos, prev, next, togglePlay, goto } = usePlayer();
 
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [convo, setConvo] = useState([]);
@@ -56,6 +56,15 @@ export default function DriveScreen({ navigation }) {
           </Press>
         </View>
       </View>
+
+      {source === "spotify" && (remote || remoteHint) && (
+        <View style={[styles.banner, remote ? styles.bannerLive : styles.bannerHint]}>
+          <View style={[styles.bannerDot, { backgroundColor: remote ? "#1DB954" : "#C7B8FF" }]} />
+          <Text style={styles.bannerText}>
+            {remote ? "Controlling your active Spotify device" : remoteHint}
+          </Text>
+        </View>
+      )}
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.now}>
@@ -145,6 +154,12 @@ const styles = StyleSheet.create({
   greetSub: { fontSize: 12.5, color: COLORS.textMute, marginTop: 2, fontFamily: FONT.regular },
   liveBadge: { width: 40, height: 40, borderRadius: 20, backgroundColor: `${ACCENT}1c`, alignItems: "center", justifyContent: "center" },
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surfaceAlt, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center" },
+
+  banner: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 24, marginTop: 4, marginBottom: 2, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1 },
+  bannerLive: { backgroundColor: "#1DB95414", borderColor: "#1DB95433" },
+  bannerHint: { backgroundColor: COLORS.surfaceAlt, borderColor: COLORS.border },
+  bannerDot: { width: 7, height: 7, borderRadius: 4 },
+  bannerText: { flex: 1, fontSize: 11.5, color: COLORS.textMute, lineHeight: 15, fontFamily: FONT.regular },
 
   scroll: { paddingBottom: 110 },
   now: { paddingHorizontal: 24, paddingTop: 14, alignItems: "center" },
