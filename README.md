@@ -33,7 +33,10 @@ Spotify real:
    redirect URI the app logs on launch (scheme `driveflow`).
 3. Set `EXPO_PUBLIC_SPOTIFY_CLIENT_ID` in `.env` and restart the dev server.
 
-PKCE is used, so no client secret is required. Apple Music and Audible stay
+PKCE is used, so no client secret is required. Tokens are refreshed
+automatically when expired. Once Spotify is connected for real, the drive queue
+is built from your **recently-played** tracks (and can be refreshed from the
+Account screen); otherwise a sample mix is used. Apple Music and Audible stay
 simulated — neither offers a public user-facing OAuth.
 
 ## Running
@@ -54,16 +57,20 @@ src/
   theme.js                   # colors, fonts, gradient + shadow tokens
   navigation/
     RootNavigator.js         # native stack: Intro → Link → Drive
+  api/
+    spotify.js               # recently-played → queue items
   auth/
     config.js                # per-service OAuth config (Spotify real, rest simulated)
-    AuthContext.js           # OAuth flow, linked state, connect/disconnect
+    AuthContext.js           # OAuth flow, linked state, connect/disconnect, token refresh
+    AuthSheetHost.js         # single app-level consent sheet
     storage.js               # secure token persistence
   player/
-    PlayerContext.js         # shared queue playback state + controls
+    PlayerContext.js         # shared playback state; loads the real Spotify queue
   screens/
     IntroScreen.js           # value prop + "Connect my accounts"
-    LinkScreen.js            # service list, connect/disconnect, consent sheet
+    LinkScreen.js            # service list, connect/disconnect
     DriveScreen.js           # now-playing, progress, queue, voice FAB
+    SettingsScreen.js        # manage connections + queue source/refresh
   components/
     AuthSheet.js             # OAuth consent sheet (ask → working → done)
     VoiceSheet.js            # hands-free assistant sheet

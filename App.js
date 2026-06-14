@@ -11,6 +11,7 @@ import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
 
 import { COLORS } from "./src/theme";
 import { AuthProvider } from "./src/auth/AuthContext";
+import AuthSheetHost from "./src/auth/AuthSheetHost";
 import { PlayerProvider } from "./src/player/PlayerContext";
 import RootNavigator from "./src/navigation/RootNavigator";
 
@@ -38,6 +39,7 @@ export default function App() {
                 <NavigationContainer theme={NavTheme}>
                   <RootNavigator />
                 </NavigationContainer>
+                <AuthSheetHost />
               </PlayerProvider>
             </AuthProvider>
           </SafeAreaView>

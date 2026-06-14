@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import IntroScreen from "../screens/IntroScreen";
 import LinkScreen from "../screens/LinkScreen";
 import DriveScreen from "../screens/DriveScreen";
+import SettingsScreen from "../screens/SettingsScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -20,6 +21,7 @@ export default function RootNavigator() {
       <Stack.Screen name="Intro" component={IntroScreen} />
       <Stack.Screen name="Link" component={LinkScreen} />
       <Stack.Screen name="Drive" component={DriveScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
 }

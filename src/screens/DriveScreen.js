@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
-  Play, Pause, SkipForward, SkipBack, Waves, Sparkles, Mic,
+  Play, Pause, SkipForward, SkipBack, Waves, Sparkles, Mic, Settings,
 } from "lucide-react-native";
-import { QUEUE, fmt, voiceReply } from "../data";
+import { fmt, voiceReply } from "../data";
 import { BRAND, ACCENT, COLORS, FONT, GRAD_135, shadow } from "../theme";
 import { useAuth } from "../auth/AuthContext";
 import { usePlayer } from "../player/PlayerContext";
@@ -13,9 +13,9 @@ import FadeIn from "../components/FadeIn";
 import Equalizer from "../components/Equalizer";
 import VoiceSheet from "../components/VoiceSheet";
 
-export default function DriveScreen() {
+export default function DriveScreen({ navigation }) {
   const { linkedCount } = useAuth();
-  const { track, idx, playing, pos, prev, next, togglePlay, goto } = usePlayer();
+  const { queue, source, track, idx, playing, pos, prev, next, togglePlay, goto } = usePlayer();
 
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [convo, setConvo] = useState([]);
@@ -39,14 +39,21 @@ export default function DriveScreen() {
   return (
     <FadeIn style={styles.screen}>
       <View style={styles.head}>
-        <View>
+        <View style={styles.headMeta}>
           <Text style={styles.greet}>Evening commute</Text>
           <Text style={styles.greetSub}>
-            Mixed across {linkedCount} connected source{linkedCount > 1 ? "s" : ""}
+            {source === "spotify"
+              ? "From your recent Spotify listening"
+              : `Mixed across ${linkedCount} connected source${linkedCount > 1 ? "s" : ""}`}
           </Text>
         </View>
-        <View style={styles.liveBadge}>
-          <Waves size={16} color={ACCENT} />
+        <View style={styles.headBtns}>
+          <View style={styles.liveBadge}>
+            <Waves size={16} color={ACCENT} />
+          </View>
+          <Press onPress={() => navigation.navigate("Settings")} style={styles.iconBtn} hitSlop={8}>
+            <Settings size={18} color="#fff" />
+          </Press>
         </View>
       </View>
 
@@ -93,7 +100,7 @@ export default function DriveScreen() {
 
         <Text style={styles.upNext}>Up next on your route</Text>
         <View style={styles.queue}>
-          {QUEUE.map((q, i) => {
+          {queue.map((q, i) => {
             if (i === idx) return null;
             const QIcon = q.icon;
             return (
@@ -132,9 +139,12 @@ export default function DriveScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   head: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 24, paddingTop: 8, paddingBottom: 8 },
+  headMeta: { flex: 1, paddingRight: 12 },
+  headBtns: { flexDirection: "row", alignItems: "center", gap: 10 },
   greet: { fontSize: 20, fontFamily: FONT.extrabold, letterSpacing: -0.5, color: COLORS.text },
   greetSub: { fontSize: 12.5, color: COLORS.textMute, marginTop: 2, fontFamily: FONT.regular },
   liveBadge: { width: 40, height: 40, borderRadius: 20, backgroundColor: `${ACCENT}1c`, alignItems: "center", justifyContent: "center" },
+  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surfaceAlt, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center" },
 
   scroll: { paddingBottom: 110 },
   now: { paddingHorizontal: 24, paddingTop: 14, alignItems: "center" },

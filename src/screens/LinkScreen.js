@@ -8,15 +8,11 @@ import { useAuth } from "../auth/AuthContext";
 import { usePlayer } from "../player/PlayerContext";
 import Press from "../components/Press";
 import FadeIn from "../components/FadeIn";
-import AuthSheet from "../components/AuthSheet";
 
 const LIVE_COUNT = SERVICES.filter((s) => s.live).length;
 
 export default function LinkScreen({ navigation }) {
-  const {
-    isLinked, linkedCount, openAuth, disconnect,
-    authFor, authStep, authError, authorize, cancelAuth,
-  } = useAuth();
+  const { isLinked, linkedCount, openAuth, disconnect } = useAuth();
   const { startDrive } = usePlayer();
 
   const canStart = linkedCount > 0;
@@ -93,14 +89,6 @@ export default function LinkScreen({ navigation }) {
           </LinearGradient>
         </Press>
       </View>
-
-      <AuthSheet
-        service={authFor}
-        step={authStep}
-        error={authError}
-        onAuthorize={authorize}
-        onCancel={cancelAuth}
-      />
     </FadeIn>
   );
 }

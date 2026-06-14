@@ -69,6 +69,32 @@ export function AuthProvider({ children }) {
     });
   };
 
+  // Return a usable access token for a real (non-simulated) service, refreshing
+  // it first if it has expired. Returns null for simulated / unlinked services.
+  const getAccessToken = async (id) => {
+    const tok = linked[id];
+    const cfg = AUTH_CONFIG[id];
+    if (!tok || tok.simulated || !tok.accessToken || !cfg || cfg.simulated) return null;
+
+    const expSoon = tok.expiresAt && Date.now() > tok.expiresAt - 60_000; // 1m skew
+    if (!expSoon) return tok.accessToken;
+    if (!tok.refreshToken) return null;
+
+    try {
+      const refreshed = await AuthSession.refreshAsync(
+        { clientId: cfg.clientId, refreshToken: tok.refreshToken },
+        cfg.discovery
+      );
+      const newTok = shapeToken(refreshed);
+      // Spotify often omits a fresh refresh token — keep the existing one.
+      if (!newTok.refreshToken) newTok.refreshToken = tok.refreshToken;
+      await connectService(id, newTok);
+      return newTok.accessToken;
+    } catch (e) {
+      return null;
+    }
+  };
+
   // ---- consent sheet controls ----
   const openAuth = (svc) => { setAuthError(null); setAuthFor(svc); setAuthStep("ask"); };
   const cancelAuth = () => { setAuthFor(null); setAuthError(null); setAuthStep("ask"); };
@@ -128,7 +154,7 @@ export function AuthProvider({ children }) {
     () => ({
       linked, linkedCount, isLinked, hydrated,
       authFor, authStep, authError,
-      openAuth, cancelAuth, authorize, disconnect,
+      openAuth, cancelAuth, authorize, disconnect, getAccessToken,
       redirectUri,
     }),
     [linked, linkedCount, hydrated, authFor, authStep, authError, redirectUri, spotifyRequest]
