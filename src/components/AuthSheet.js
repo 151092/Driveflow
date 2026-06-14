@@ -6,7 +6,7 @@ import Press from "./Press";
 import Spinner from "./Spinner";
 
 // Secure authorize sheet (mock OAuth). `step` is one of: ask | working | done.
-export default function AuthSheet({ service, step, onAuthorize, onCancel }) {
+export default function AuthSheet({ service, step, error, onAuthorize, onCancel }) {
   if (!service) return null;
   const Icon = service.icon;
 
@@ -39,6 +39,7 @@ export default function AuthSheet({ service, step, onAuthorize, onCancel }) {
                   <Text style={styles.note}>
                     Driveflow never sees your {service.name} password. You can disconnect anytime.
                   </Text>
+                  {!!error && <Text style={styles.error}>{error}</Text>}
                   <Press onPress={onAuthorize} scaleTo={0.97} fullWidth>
                     <View style={[styles.authBtn, { backgroundColor: service.hue }]}>
                       <Text style={styles.authBtnText}>Authorize {service.name}</Text>
@@ -92,6 +93,7 @@ const styles = StyleSheet.create({
   scopeItem: { flexDirection: "row", alignItems: "center", gap: 9, paddingVertical: 5 },
   scopeText: { fontSize: 13.5, color: "#d4d4dc", fontFamily: FONT.regular },
   note: { fontSize: 12, color: COLORS.textMute, lineHeight: 18, textAlign: "center", marginBottom: 18, paddingHorizontal: 4, fontFamily: FONT.regular },
+  error: { fontSize: 12.5, color: "#FF6B6B", textAlign: "center", marginTop: -8, marginBottom: 14, fontFamily: FONT.semibold },
   authBtn: { width: "100%", paddingVertical: 15, borderRadius: 14, alignItems: "center", marginBottom: 8 },
   authBtnText: { color: "#fff", fontFamily: FONT.extrabold, fontSize: 15 },
   cancel: { width: "100%", paddingVertical: 12, alignItems: "center" },

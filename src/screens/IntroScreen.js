@@ -6,7 +6,7 @@ import { BRAND, ACCENT, COLORS, FONT, GRAD_135 } from "../theme";
 import Press from "../components/Press";
 import FadeIn from "../components/FadeIn";
 
-export default function IntroScreen({ onConnect }) {
+export default function IntroScreen({ navigation }) {
   return (
     <FadeIn style={styles.screen}>
       <View style={styles.body}>
@@ -34,7 +34,7 @@ export default function IntroScreen({ onConnect }) {
       </View>
 
       <View style={styles.footer}>
-        <Press onPress={onConnect} scaleTo={0.97} fullWidth>
+        <Press onPress={() => navigation.navigate("Link")} scaleTo={0.97} fullWidth>
           <LinearGradient colors={BRAND} {...GRAD_135} style={styles.cta}>
             <Text style={styles.ctaText}>Connect my accounts</Text>
             <ChevronRight size={18} color="#fff" />

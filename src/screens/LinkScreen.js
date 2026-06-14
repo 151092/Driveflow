@@ -1,39 +1,63 @@
 import React from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { View, Text, ScrollView, Alert, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft, Check, Lock, ChevronRight } from "lucide-react-native";
 import { SERVICES } from "../data";
 import { BRAND, ACCENT, COLORS, FONT, GRAD_135 } from "../theme";
+import { useAuth } from "../auth/AuthContext";
+import { usePlayer } from "../player/PlayerContext";
 import Press from "../components/Press";
 import FadeIn from "../components/FadeIn";
+import AuthSheet from "../components/AuthSheet";
 
-export default function LinkScreen({ linked, linkedCount, liveCount, onBack, onOpenAuth, onStart }) {
+const LIVE_COUNT = SERVICES.filter((s) => s.live).length;
+
+export default function LinkScreen({ navigation }) {
+  const {
+    isLinked, linkedCount, openAuth, disconnect,
+    authFor, authStep, authError, authorize, cancelAuth,
+  } = useAuth();
+  const { startDrive } = usePlayer();
+
   const canStart = linkedCount > 0;
+
+  const onRowPress = (s) => {
+    if (!s.live) return;
+    if (isLinked(s.id)) {
+      Alert.alert("Disconnect " + s.name + "?", "Driveflow will stop reading from " + s.name + ".", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Disconnect", style: "destructive", onPress: () => disconnect(s.id) },
+      ]);
+    } else {
+      openAuth(s);
+    }
+  };
+
+  const start = () => { startDrive(); navigation.navigate("Drive"); };
 
   return (
     <FadeIn style={styles.screen}>
       <View style={styles.head}>
-        <Press onPress={onBack} style={styles.backBtn} hitSlop={8}>
+        <Press onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={8}>
           <ArrowLeft size={20} color="#fff" />
         </Press>
         <View>
           <Text style={styles.title}>Link your audio</Text>
-          <Text style={styles.sub}>{linkedCount} of {liveCount} connected</Text>
+          <Text style={styles.sub}>{linkedCount} of {LIVE_COUNT} connected</Text>
         </View>
       </View>
 
       <ScrollView style={styles.list} contentContainerStyle={styles.listInner}>
         {SERVICES.map((s) => {
-          const on = !!linked[s.id];
+          const on = isLinked(s.id);
           const Icon = s.icon;
-          const interactive = s.live && !on;
           return (
             <Press
               key={s.id}
               fullWidth
               scaleTo={0.985}
-              disabled={!interactive}
-              onPress={() => interactive && onOpenAuth(s)}
+              disabled={!s.live}
+              onPress={() => onRowPress(s)}
               style={[
                 styles.svc,
                 on && { borderColor: s.hue, backgroundColor: `${s.hue}12` },
@@ -45,7 +69,7 @@ export default function LinkScreen({ linked, linkedCount, liveCount, onBack, onO
               </View>
               <View style={styles.svcMeta}>
                 <Text style={styles.svcName}>{s.name}</Text>
-                <Text style={styles.svcTag}>{on ? "Connected · secured" : s.tag}</Text>
+                <Text style={styles.svcTag}>{on ? "Connected · tap to disconnect" : s.tag}</Text>
               </View>
               {on ? (
                 <View style={[styles.dot, { backgroundColor: s.hue }]}>
@@ -62,13 +86,21 @@ export default function LinkScreen({ linked, linkedCount, liveCount, onBack, onO
       </ScrollView>
 
       <View style={styles.footer}>
-        <Press onPress={onStart} disabled={!canStart} scaleTo={0.97} fullWidth>
+        <Press onPress={start} disabled={!canStart} scaleTo={0.97} fullWidth>
           <LinearGradient colors={BRAND} {...GRAD_135} style={[styles.cta, !canStart && { opacity: 0.35 }]}>
             <Text style={styles.ctaText}>{canStart ? "Start my drive" : "Connect at least one to start"}</Text>
             {canStart && <ChevronRight size={18} color="#fff" />}
           </LinearGradient>
         </Press>
       </View>
+
+      <AuthSheet
+        service={authFor}
+        step={authStep}
+        error={authError}
+        onAuthorize={authorize}
+        onCancel={cancelAuth}
+      />
     </FadeIn>
   );
 }

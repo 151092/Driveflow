@@ -1,19 +1,38 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   Play, Pause, SkipForward, SkipBack, Waves, Sparkles, Mic,
 } from "lucide-react-native";
-import { QUEUE, fmt } from "../data";
+import { QUEUE, fmt, voiceReply } from "../data";
 import { BRAND, ACCENT, COLORS, FONT, GRAD_135, shadow } from "../theme";
+import { useAuth } from "../auth/AuthContext";
+import { usePlayer } from "../player/PlayerContext";
 import Press from "../components/Press";
 import FadeIn from "../components/FadeIn";
 import Equalizer from "../components/Equalizer";
+import VoiceSheet from "../components/VoiceSheet";
 
-export default function DriveScreen({
-  track, idx, playing, pos, linkedCount,
-  onPrev, onNext, onTogglePlay, onGoto, onOpenVoice,
-}) {
+export default function DriveScreen() {
+  const { linkedCount } = useAuth();
+  const { track, idx, playing, pos, prev, next, togglePlay, goto } = usePlayer();
+
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [convo, setConvo] = useState([]);
+  const [listening, setListening] = useState(false);
+
+  const runVoice = (text) => {
+    setListening(true);
+    setConvo((c) => [...c, { who: "you", text }]);
+    setTimeout(() => {
+      const r = voiceReply(text);
+      setConvo((c) => [...c, { who: "flow", text: r.say }]);
+      setListening(false);
+      if (typeof r.jump === "number") goto(r.jump);
+      if (r.next) next();
+    }, 850);
+  };
+
   const TrackIcon = track.icon;
   const pct = Math.min(100, (pos / track.dur) * 100);
 
@@ -56,17 +75,17 @@ export default function DriveScreen({
           </View>
 
           <View style={styles.transport}>
-            <Press onPress={onPrev} style={styles.tBtn} hitSlop={8}>
+            <Press onPress={prev} style={styles.tBtn} hitSlop={8}>
               <SkipBack size={22} color="#fff" />
             </Press>
-            <Press onPress={onTogglePlay}>
+            <Press onPress={togglePlay}>
               <View style={[styles.playBtn, { backgroundColor: track.hue }]}>
                 {playing
                   ? <Pause size={26} color="#fff" />
                   : <Play size={26} color="#fff" style={{ marginLeft: 3 }} />}
               </View>
             </Press>
-            <Press onPress={onNext} style={styles.tBtn} hitSlop={8}>
+            <Press onPress={next} style={styles.tBtn} hitSlop={8}>
               <SkipForward size={22} color="#fff" />
             </Press>
           </View>
@@ -78,7 +97,7 @@ export default function DriveScreen({
             if (i === idx) return null;
             const QIcon = q.icon;
             return (
-              <Press key={q.id} fullWidth style={styles.qItem} onPress={() => onGoto(i)}>
+              <Press key={q.id} fullWidth style={styles.qItem} onPress={() => goto(i)}>
                 <View style={[styles.qIcon, { backgroundColor: `${q.hue}22` }]}>
                   <QIcon size={16} color={q.hue} />
                 </View>
@@ -93,11 +112,19 @@ export default function DriveScreen({
         </View>
       </ScrollView>
 
-      <Press onPress={onOpenVoice} style={[styles.fab, shadow(30, 0.5)]} scaleTo={0.9}>
+      <Press onPress={() => setVoiceOpen(true)} style={[styles.fab, shadow(30, 0.5)]} scaleTo={0.9}>
         <LinearGradient colors={BRAND} {...GRAD_135} style={styles.fabInner}>
           <Mic size={26} color="#fff" />
         </LinearGradient>
       </Press>
+
+      <VoiceSheet
+        visible={voiceOpen}
+        listening={listening}
+        convo={convo}
+        onRun={runVoice}
+        onClose={() => setVoiceOpen(false)}
+      />
     </FadeIn>
   );
 }
