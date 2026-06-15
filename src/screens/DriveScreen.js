@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { View, Text, Image, ScrollView, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   Play, Pause, SkipForward, SkipBack, Waves, Sparkles, Mic, Settings,
@@ -12,14 +12,35 @@ import Press from "../components/Press";
 import FadeIn from "../components/FadeIn";
 import Equalizer from "../components/Equalizer";
 import VoiceSheet from "../components/VoiceSheet";
+import DeviceSheet from "../components/DeviceSheet";
 
 export default function DriveScreen({ navigation }) {
   const { linkedCount } = useAuth();
-  const { queue, source, remote, remoteHint, track, idx, playing, pos, prev, next, togglePlay, goto } = usePlayer();
+  const {
+    queue, source, remote, remoteHint, device, listDevices, selectDevice,
+    track, idx, playing, pos, prev, next, togglePlay, goto,
+  } = usePlayer();
 
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [convo, setConvo] = useState([]);
   const [listening, setListening] = useState(false);
+
+  const [deviceOpen, setDeviceOpen] = useState(false);
+  const [devices, setDevices] = useState([]);
+  const [devicesLoading, setDevicesLoading] = useState(false);
+
+  const refreshDevices = async () => {
+    setDevicesLoading(true);
+    setDevices(await listDevices());
+    setDevicesLoading(false);
+  };
+
+  const openDevices = () => { setDeviceOpen(true); refreshDevices(); };
+
+  const pickDevice = async (d) => {
+    setDeviceOpen(false);
+    await selectDevice(d.id);
+  };
 
   const runVoice = (text) => {
     setListening(true);
@@ -58,20 +79,32 @@ export default function DriveScreen({ navigation }) {
       </View>
 
       {source === "spotify" && (remote || remoteHint) && (
-        <View style={[styles.banner, remote ? styles.bannerLive : styles.bannerHint]}>
+        <Press fullWidth onPress={openDevices} scaleTo={0.985}
+          style={[styles.banner, remote ? styles.bannerLive : styles.bannerHint]}>
           <View style={[styles.bannerDot, { backgroundColor: remote ? "#1DB954" : "#C7B8FF" }]} />
-          <Text style={styles.bannerText}>
-            {remote ? "Controlling your active Spotify device" : remoteHint}
+          <Text style={styles.bannerText} numberOfLines={1}>
+            {remote
+              ? `Playing on ${device?.name || "your Spotify device"}`
+              : remoteHint}
           </Text>
-        </View>
+          <Text style={styles.bannerAction}>{remote ? "Switch" : "Devices"}</Text>
+        </Press>
       )}
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.now}>
-          <LinearGradient colors={[track.hue, `${track.hue}55`]} {...GRAD_135} style={styles.art}>
-            <TrackIcon size={42} color="#fff" style={{ opacity: 0.92 }} />
-            {playing && <Equalizer />}
-          </LinearGradient>
+          <View style={styles.artShadow}>
+            <View style={styles.art}>
+              {track.image ? (
+                <Image source={{ uri: track.image }} style={styles.artImg} />
+              ) : (
+                <LinearGradient colors={[track.hue, `${track.hue}55`]} {...GRAD_135} style={styles.artFill}>
+                  <TrackIcon size={42} color="#fff" style={{ opacity: 0.92 }} />
+                </LinearGradient>
+              )}
+              {playing && <Equalizer />}
+            </View>
+          </View>
 
           <View style={styles.reason}>
             <Sparkles size={12} color="#C7B8FF" />
@@ -114,9 +147,13 @@ export default function DriveScreen({ navigation }) {
             const QIcon = q.icon;
             return (
               <Press key={q.id} fullWidth style={styles.qItem} onPress={() => goto(i)}>
-                <View style={[styles.qIcon, { backgroundColor: `${q.hue}22` }]}>
-                  <QIcon size={16} color={q.hue} />
-                </View>
+                {q.image ? (
+                  <Image source={{ uri: q.image }} style={styles.qImg} />
+                ) : (
+                  <View style={[styles.qIcon, { backgroundColor: `${q.hue}22` }]}>
+                    <QIcon size={16} color={q.hue} />
+                  </View>
+                )}
                 <View style={styles.qMeta}>
                   <Text style={styles.qTitle}>{q.title}</Text>
                   <Text style={styles.qType}>{q.src} · {fmt(q.dur)}</Text>
@@ -141,6 +178,15 @@ export default function DriveScreen({ navigation }) {
         onRun={runVoice}
         onClose={() => setVoiceOpen(false)}
       />
+
+      <DeviceSheet
+        visible={deviceOpen}
+        devices={devices}
+        loading={devicesLoading}
+        onSelect={pickDevice}
+        onRefresh={refreshDevices}
+        onClose={() => setDeviceOpen(false)}
+      />
     </FadeIn>
   );
 }
@@ -160,10 +206,14 @@ const styles = StyleSheet.create({
   bannerHint: { backgroundColor: COLORS.surfaceAlt, borderColor: COLORS.border },
   bannerDot: { width: 7, height: 7, borderRadius: 4 },
   bannerText: { flex: 1, fontSize: 11.5, color: COLORS.textMute, lineHeight: 15, fontFamily: FONT.regular },
+  bannerAction: { fontSize: 11.5, color: "#fff", fontFamily: FONT.bold },
 
   scroll: { paddingBottom: 110 },
   now: { paddingHorizontal: 24, paddingTop: 14, alignItems: "center" },
-  art: { width: 150, height: 150, borderRadius: 26, alignItems: "center", justifyContent: "center", marginBottom: 14, ...shadow(40, 0.45) },
+  artShadow: { width: 150, height: 150, borderRadius: 26, marginBottom: 14, ...shadow(40, 0.45) },
+  art: { width: 150, height: 150, borderRadius: 26, overflow: "hidden", alignItems: "center", justifyContent: "center" },
+  artImg: { width: "100%", height: "100%" },
+  artFill: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
   reason: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#8B5CF614", paddingVertical: 5, paddingHorizontal: 11, borderRadius: 20, marginBottom: 10 },
   reasonText: { fontSize: 11, color: "#C7B8FF", fontFamily: FONT.semibold },
   nowTitle: { fontSize: 19, fontFamily: FONT.extrabold, textAlign: "center", letterSpacing: -0.5, color: COLORS.text },
@@ -183,6 +233,7 @@ const styles = StyleSheet.create({
   queue: { paddingHorizontal: 24, gap: 8 },
   qItem: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, backgroundColor: COLORS.surface },
   qIcon: { width: 32, height: 32, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  qImg: { width: 32, height: 32, borderRadius: 9 },
   qMeta: { flex: 1 },
   qTitle: { fontSize: 13.5, fontFamily: FONT.semibold, color: COLORS.text },
   qType: { fontSize: 11, color: COLORS.textFaint, marginTop: 1, fontFamily: FONT.regular },

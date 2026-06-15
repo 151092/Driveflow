@@ -2,7 +2,8 @@ import React, { createContext, useContext, useEffect, useRef, useState } from "r
 import { QUEUE } from "../data";
 import { useAuth } from "../auth/AuthContext";
 import {
-  fetchSpotifyQueue, getPlaybackState, play, pause, skipNext, skipPrevious,
+  fetchSpotifyQueue, getPlaybackState, getDevices, transferPlayback,
+  play, pause, skipNext, skipPrevious,
 } from "../api/spotify";
 
 const PlayerContext = createContext(null);
@@ -25,6 +26,8 @@ export function PlayerProvider({ children }) {
   // Remote = controlling a real Spotify device via the Web API (vs the local ticker).
   const [remote, setRemote] = useState(false);
   const [remoteHint, setRemoteHint] = useState(null);
+  const [nowPlaying, setNowPlaying] = useState(null); // live track from the device
+  const [device, setDevice] = useState(null);         // active device name/id
 
   const timer = useRef(null);
   const queueRef = useRef(queue);
@@ -32,7 +35,8 @@ export function PlayerProvider({ children }) {
   const idxRef = useRef(idx);
   idxRef.current = idx;
 
-  const track = queue[idx] || queue[0];
+  // When remotely controlling, show exactly what the device is playing.
+  const track = (remote && nowPlaying) || queue[idx] || queue[0];
   const token = () => getAccessToken("spotify");
 
   // ---- queue + remote detection ----
@@ -40,7 +44,7 @@ export function PlayerProvider({ children }) {
     try {
       const st = await getPlaybackState(t);
       if (st.active) { setRemote(true); setRemoteHint(null); applyState(st); }
-      else { setRemote(false); setRemoteHint(NO_DEVICE_HINT); }
+      else { setRemote(false); setDevice(null); setNowPlaying(null); setRemoteHint(NO_DEVICE_HINT); }
     } catch (e) {
       setRemote(false);
     }
@@ -72,10 +76,35 @@ export function PlayerProvider({ children }) {
   const applyState = (st) => {
     setPlaying(st.isPlaying);
     setPos(Math.round((st.progressMs || 0) / 1000));
+    setDevice(st.device || null);
+    if (st.track) setNowPlaying(st.track);
     if (st.trackId) {
       const found = queueRef.current.findIndex((q) => q.id === st.trackId);
       if (found >= 0) setIdx(found);
     }
+  };
+
+  // ---- device selection (transfer playback) ----
+  const listDevices = async () => {
+    const t = await token();
+    if (!t) return [];
+    try { return await getDevices(t); } catch (e) { return []; }
+  };
+
+  const selectDevice = async (deviceId) => {
+    const t = await token();
+    if (!t) return false;
+    const moved = await transferPlayback(t, deviceId, true);
+    if (moved) {
+      setRemote(true);
+      setRemoteHint(null);
+      // Give Spotify a moment to spin up the device, then sync.
+      setTimeout(async () => {
+        const tk = await token();
+        if (tk) { try { const st = await getPlaybackState(tk); if (st.active) applyState(st); } catch (e) {} }
+      }, 700);
+    }
+    return moved;
   };
 
   // ---- ticking: poll the device when remote, otherwise run the local clock ----
@@ -111,7 +140,7 @@ export function PlayerProvider({ children }) {
   const localPrev = () => { setIdx((i) => (i - 1 + len()) % len()); setPos(0); setPlaying(true); };
 
   // If a remote action fails, drop to local control and explain why once.
-  const dropToLocal = () => { setRemote(false); setRemoteHint(PREMIUM_HINT); };
+  const dropToLocal = () => { setRemote(false); setNowPlaying(null); setDevice(null); setRemoteHint(PREMIUM_HINT); };
 
   // ---- public transport (remote-aware) ----
   const togglePlay = async () => {
@@ -162,7 +191,7 @@ export function PlayerProvider({ children }) {
 
   const value = {
     queue, source, loadingQueue, refreshQueue: loadSpotifyQueue,
-    remote, remoteHint,
+    remote, remoteHint, device, listDevices, selectDevice,
     idx, playing, pos, track,
     next, prev, goto, togglePlay, startDrive,
   };

@@ -40,10 +40,13 @@ Account screen); otherwise a sample mix is used.
 
 **Playback control:** when a Spotify device is active (the Spotify app open on a
 phone, desktop, or speaker) the transport controls drive it for real over the
-Web API — play/pause/skip and 1s live position polling. This needs Spotify
+Web API — play/pause/skip with 1s live position polling, **real album artwork**,
+and the now-playing card mirroring whatever the device is playing. Tap the status
+banner to pick or **switch devices** (transfer playback). This needs Spotify
 **Premium**; without an active device or Premium the app falls back to a local
-preview clock and shows a hint. Apple Music and Audible stay simulated — neither
-offers a public user-facing OAuth.
+preview clock and shows a hint. The Account screen shows the **connected Spotify
+profile**. Apple Music and Audible stay simulated — neither offers a public
+user-facing OAuth.
 
 ## Running
 

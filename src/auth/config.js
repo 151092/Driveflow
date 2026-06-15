@@ -17,6 +17,7 @@ export const AUTH_CONFIG = {
     clientId: SPOTIFY_CLIENT_ID,
     simulated: !SPOTIFY_CLIENT_ID,
     scopes: [
+      "user-read-private",
       "user-read-recently-played",
       "user-read-playback-state",
       "user-modify-playback-state",

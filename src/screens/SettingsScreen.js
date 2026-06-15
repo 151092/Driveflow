@@ -1,16 +1,32 @@
-import React from "react";
-import { View, Text, ScrollView, Alert, StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, Image, ScrollView, Alert, StyleSheet } from "react-native";
 import { ArrowLeft, Check, Plus, RefreshCw, Lock } from "lucide-react-native";
 import { SERVICES } from "../data";
 import { ACCENT, COLORS, FONT } from "../theme";
 import { useAuth } from "../auth/AuthContext";
 import { usePlayer } from "../player/PlayerContext";
+import { getProfile } from "../api/spotify";
 import Press from "../components/Press";
 import FadeIn from "../components/FadeIn";
 
 export default function SettingsScreen({ navigation }) {
-  const { linked, isLinked, openAuth, disconnect } = useAuth();
+  const { linked, isLinked, openAuth, disconnect, getAccessToken } = useAuth();
   const { source, refreshQueue, loadingQueue } = usePlayer();
+
+  const [profile, setProfile] = useState(null); // connected Spotify user
+
+  const spotifyTok = linked.spotify;
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!spotifyTok || spotifyTok.simulated) { setProfile(null); return; }
+      const t = await getAccessToken("spotify");
+      if (!t) return;
+      try { const p = await getProfile(t); if (!cancelled) setProfile(p); } catch (e) {}
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spotifyTok?.accessToken]);
 
   const confirmDisconnect = (s) =>
     Alert.alert(`Disconnect ${s.name}?`, `Driveflow will stop reading from ${s.name}.`, [
@@ -21,7 +37,11 @@ export default function SettingsScreen({ navigation }) {
   const statusFor = (s) => {
     const tok = linked[s.id];
     if (!tok) return s.live ? "Not connected" : "Coming soon";
-    return tok.simulated ? "Connected · demo" : "Connected · live";
+    if (tok.simulated) return "Connected · demo";
+    if (s.id === "spotify" && profile) {
+      return `${profile.name}${profile.product === "premium" ? " · Premium" : ""}`;
+    }
+    return "Connected · live";
   };
 
   return (
@@ -43,9 +63,13 @@ export default function SettingsScreen({ navigation }) {
           const Icon = s.icon;
           return (
             <View key={s.id} style={[styles.row, !s.live && { opacity: 0.5 }]}>
-              <View style={[styles.icon, { backgroundColor: `${s.hue}22` }]}>
-                <Icon size={19} color={s.hue} />
-              </View>
+              {s.id === "spotify" && profile?.image ? (
+                <Image source={{ uri: profile.image }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.icon, { backgroundColor: `${s.hue}22` }]}>
+                  <Icon size={19} color={s.hue} />
+                </View>
+              )}
               <View style={styles.meta}>
                 <Text style={styles.name}>{s.name}</Text>
                 <Text style={[styles.status, on && { color: s.hue }]}>{statusFor(s)}</Text>
@@ -111,6 +135,7 @@ const styles = StyleSheet.create({
 
   row: { flexDirection: "row", alignItems: "center", gap: 13, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 16, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, marginBottom: 10 },
   icon: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  avatar: { width: 38, height: 38, borderRadius: 19 },
   meta: { flex: 1 },
   name: { fontSize: 15, fontFamily: FONT.bold, color: COLORS.text },
   status: { fontSize: 11.5, color: COLORS.textFaint, marginTop: 1, fontFamily: FONT.regular },

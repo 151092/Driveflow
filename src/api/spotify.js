@@ -6,6 +6,7 @@ const API = "https://api.spotify.com/v1";
 // Map a Spotify track object into Driveflow's queue-item shape.
 function mapTrack(track, i) {
   const artists = (track.artists || []).map((a) => a.name).join(", ");
+  const images = track.album?.images || [];
   return {
     id: track.id || `sp-${i}`,
     uri: track.uri || null,
@@ -13,6 +14,7 @@ function mapTrack(track, i) {
     src: "Spotify",
     title: track.name,
     sub: artists || "Spotify",
+    image: images[0]?.url || null,
     reason: "From your recent Spotify listening",
     dur: Math.round((track.duration_ms || 0) / 1000),
     hue: SPOTIFY_GREEN,
@@ -22,6 +24,14 @@ function mapTrack(track, i) {
 
 const auth = (token) => ({ Authorization: `Bearer ${token}` });
 const ok = (res) => res.ok || res.status === 204;
+
+// The connected user's profile (for the Account screen).
+export async function getProfile(token) {
+  const res = await fetch(`${API}/me`, { headers: auth(token) });
+  if (!res.ok) throw new Error(`me ${res.status}`);
+  const d = await res.json();
+  return { id: d.id, name: d.display_name || d.id, image: d.images?.[0]?.url || null, product: d.product };
+}
 
 // ---- Remote playback control (Web API drives the user's active Spotify device) ----
 
@@ -35,10 +45,28 @@ export async function getPlaybackState(token) {
     active: true,
     isPlaying: !!d.is_playing,
     progressMs: d.progress_ms || 0,
-    trackId: d.item?.id || null,
     durationMs: d.item?.duration_ms || 0,
+    trackId: d.item?.id || null,
+    track: d.item ? mapTrack(d.item, 0) : null,
     device: d.device || null,
   };
+}
+
+export async function getDevices(token) {
+  const res = await fetch(`${API}/me/player/devices`, { headers: auth(token) });
+  if (!res.ok) throw new Error(`devices ${res.status}`);
+  const d = await res.json();
+  return d.devices || [];
+}
+
+// Move playback to a device (and optionally start playing there).
+export async function transferPlayback(token, deviceId, playNow = true) {
+  const res = await fetch(`${API}/me/player`, {
+    method: "PUT",
+    headers: { ...auth(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ device_ids: [deviceId], play: playNow }),
+  });
+  return ok(res);
 }
 
 export async function play(token, { uris, positionMs } = {}) {
